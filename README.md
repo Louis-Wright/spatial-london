@@ -1,6 +1,3 @@
-# spatial-london
-Intro to R spatial using London examples - Robin L tut
-
 # Spatial Analysis in R - London examples
 
 # Source
@@ -13,7 +10,7 @@ x = c("ggmap", "rgdal", "rgeos", "maptools", "dplyr", "tidyr", "tmap")
 lapply(x, library, character.only = TRUE)                   # load the required packages
 
 # Load data
-lnd = readOGR(dsn = "data/london_sport.shp")                # polys are london boroughs 2001\
+lnd = readOGR(dsn = "data/london_sport.shp")                # polys are london boroughs 2001
 head(lnd@data, n = 2)                                       # summary of first two data points 
 mean(lnd$Partic_Per)                                        # mean for sport part. (%) per borough
 sapply(lnd@data, class)                                     # class of data/column
@@ -84,3 +81,38 @@ library(tmap)
 qtm(lnd, fill = "quadrant") +
   tm_shape(lnd_disolved) +
   tm_borders(lwd = 9)
+
+# Spatial indluence
+# source: http://www.rspatial.org/analysis/rst/2-scale_distance.html#two-nearest-neighbours
+
+library(raster)
+library(spdep)
+
+plot(lnd, col = "grey")
+xy = coordinates(lnd)
+wr <- poly2nb(lnd, row.names=lnd$ons_label, queen=FALSE) # adj neigbours
+plot(wr, xy, col='red', lwd=2, add=TRUE)
+
+# number of neighbors for each area
+wm <- nb2mat(wr, style='B', zero.policy = TRUE)
+i <- rowSums(wm)
+i
+
+# Expresses as percentage
+round(100 * table(i) / length(i), 1)
+
+# Distance based:
+wd5 <- dnearneigh(xy, 0, 5000)
+wd10 <- dnearneigh(xy, 0, 10000)
+wd25 <- dnearneigh(xy, 0, 25000)
+
+plot(wd25, xy, col='red', lwd=2, add=TRUE)
+
+plotit <- function(nb, lab='') {
+  plot(lnd, col='gray', border='white')
+  plot(nb, xy, add=TRUE, pch=20)
+  text(6.3, 50.1, paste0('(', lab, ')'), cex=1.25)
+}
+plotit(wd25, '25 km')
+plotit(wd10, '10 km')
+plotit(wd5, '5 km')
